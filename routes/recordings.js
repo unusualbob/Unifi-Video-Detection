@@ -31,8 +31,7 @@ router.get('/:id/thumbnail.jpg', authentication.verifySignatureMiddleware('read'
 // If this is only a file host and not a processor, need to allow for uploads of processed files
 if (!config.hostJob.processor) {
   router.post('/create', authentication.verifySignatureMiddleware('write'), async (req, res) => {
-    let recordingData = JSON.parse(req.body.recording);
-    let recording = new mongoose.model('Recording')(recordingData);
+    let recording = new mongoose.model('Recording')(req.body);
     try {
       await recording.save();
     } catch(e) {

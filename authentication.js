@@ -7,6 +7,7 @@ const ec = new EC('p256');
 const mongoose = require('mongoose');
 
 const config = require('./config');
+const utils = require('./utils');
 
 const Authentication = {
   lastRequestNonce: {},
@@ -45,7 +46,7 @@ Authentication.verifySignatureMiddleware = function(accessLevel) {
 
     let publicKey = req.headers['x-identity'];
     let signature = req.headers['x-signature'];
-    let oneTimeAuth = req.headers['x-oneTimeAuth'];
+    let oneTimeAuth = req.headers['x-onetimeauth'];
     let url = config.fileHostUrl + req.originalUrl;
     let payload;
 
@@ -63,7 +64,7 @@ Authentication.verifySignatureMiddleware = function(accessLevel) {
     if (oneTimeAuth) {
       try {
         // Verify OTA token
-        assert.strictEqual(typeof req.headers['x-oneTimeAuth'], 'string', 'x-oneTimeAuth header invalid');
+        assert.strictEqual(typeof req.headers['x-onetimeauth'], 'string', 'x-onetimeauth header invalid');
         let ota = await mongoose.model('OneTimeAuth').findAndBurn(oneTimeAuth);
         if (ota.pathRestriction) {
           if (req.originalUrl.indexOf(ota.pathRestriction) !== 0) {
@@ -120,14 +121,17 @@ Authentication.generateHeaders = async function(url, body, oneTimeAuth) {
 
   let time = `${now}${Authentication.counter++}`;
 
+  let payload = `${time}${url}${body}`;
+  let hash = crypto.createHash('sha256').update(payload).digest('hex');
+
   let headers = {
     'x-time': time,
     'x-identity': publicKey,
-    'x-signature': Authentication.privateKeyPair.sign(`${time}${url}${body}`)
+    'x-signature': Authentication.privateKeyPair.sign(hash).toDER('hex')
   };
 
   if (oneTimeAuth) {
-    headers['x-oneTimeAuth'] = body;
+    headers['x-onetimeauth'] = body;
   }
 
   return headers;

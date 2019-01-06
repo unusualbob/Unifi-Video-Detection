@@ -4,6 +4,7 @@ const util = require('util');
 
 const firebase = require('firebase-admin');
 const mongoose = require('mongoose');
+const request = require('request');
 
 // Config
 const config = require('./config');
@@ -182,6 +183,18 @@ utils.getRecordingMiddleware = function getRecording(projection) {
     req.recording = recording;
     next();
   };
+};
+
+utils.makeRequest = async function makeRequest(options) {
+  return new Promise((resolve) => {
+    request(options, (err, response, body) => {
+      if (err) {
+        throw err;
+      } else {
+        return resolve([response, body]);
+      }
+    })
+  });
 };
 
 utils.fsWriteAsync = util.promisify(fs.writeFile);

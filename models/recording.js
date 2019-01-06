@@ -184,35 +184,40 @@ RecordingSchema.methods.streamProcessed = async function() {
 RecordingSchema.methods.createRemoteRecording = async function() {
   let url = `${config.fileHostUrl}/recordings/create`;
   let jsonBody = JSON.stringify(this.toObject());
+  let headers = await authentication.generateHeaders(url, jsonBody);
 
-  let [response, body] = await request({
+  let [response, body] = await utils.makeRequest({
     url: url,
     json: true,
-    body: jsonBody,
-    headers: await authentication.generateHeaders(url, jsonBody),
+    body: this.toObject(),
+    headers: headers,
     method: 'POST'
   });
 
-  if (response.status !== 200) {
-    console.error('Create remote recording failed', response.status);
+  if (response.statusCode !== 200) {
+    console.error('Create remote recording failed', response.statusCode);
     console.error(body);
+    throw new Error('Failed create on remote host');
   }
 
-  console.log(body);
+  return body.authToken;
 };
 
 RecordingSchema.methods.uploadToRemoteHost = async function(oneTimeAuthToken) {
   let url = `${config.fileHostUrl}/recordings/${this.id}/upload`;
-  let [response, body] = await request({
+  let headers = await authentication.generateHeaders(url, oneTimeAuthToken, true);
+
+  let [response, body] = await utils.makeRequest({
     url: url,
+    headers: headers,
     formData: {
       video: fs.createReadStream(path.resolve(config.recordings.processedOutputPath, `${this.id}.mp4`))
     },
-    headers: authentication.generateHeaders(url, oneTimeAuthToken, true)
+    method: 'POST'
   });
 
-  if (response.status !== 200) {
-    console.error('Create remote recording failed', response.status);
+  if (response.statusCode !== 200) {
+    console.error('Upload remote recording failed', response.statusCode);
     console.error(body);
   }
 
