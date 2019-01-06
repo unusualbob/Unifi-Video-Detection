@@ -31,7 +31,7 @@ AuthorizedKeySchema.statics.grantAccess = async function(publicKey, access) {
 AuthorizedKeySchema.statics.checkAccess = async function(publicKey, accessLevel) {
   let key = await this.findOne({ publicKey: publicKey });
   if (!key || !key.access.includes(accessLevel)) {
-    throw new Error('Unauthorized Key');
+    throw new Error(`Unauthorized Key ${publicKey}`);
   }
 };
 

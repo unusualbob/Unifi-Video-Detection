@@ -61,8 +61,13 @@ app.use(function(req, res) {
 });
 
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
   console.log('Uncaught', err);
+  console.trace();
+});
+
+process.on('unhandledRejection', error => {
+  console.log('unhandledRejection', error);
   console.trace();
 });
 
