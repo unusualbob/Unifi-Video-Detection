@@ -7,12 +7,14 @@ const mongoose = require('mongoose');
 
 // Config
 const config = require('./config');
-const serviceAccountCredentials = require('./firebase.config');
 
-firebase.initializeApp({
-  credential: firebase.credential.cert(serviceAccountCredentials),
-  databaseURL: config.firebaseUrl
-});
+if (config.hostJob.processor) {
+  const serviceAccountCredentials = require('./firebase.config');
+  firebase.initializeApp({
+    credential: firebase.credential.cert(serviceAccountCredentials),
+    databaseURL: config.firebaseUrl
+  });
+}
 
 const utils = {};
 
