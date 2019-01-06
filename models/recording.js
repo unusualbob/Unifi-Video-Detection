@@ -141,7 +141,8 @@ RecordingSchema.methods.storeProcessed = async function(fileBuffer, detections) 
   if (!config.hostJob.fileHost) {
     this.status.remoteUpload = 'pending';
     await this.save();
-    await this.uploadToRemoteHost();
+    let token = await this.createRemoteRecording();
+    await this.uploadToRemoteHost(token);
   }
 
   // Only send if recent event
@@ -174,7 +175,6 @@ RecordingSchema.methods.storeProcessedViaUpload = async function(fileBuffer) {
     }
   }
   await utils.fsWriteAsync(filePath, fileBuffer);
-  return await this.generateThumbnail(await utils.fetchVideoFrameCount(this.id));
 };
 
 RecordingSchema.methods.streamProcessed = async function() {
