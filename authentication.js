@@ -46,7 +46,7 @@ Authentication.verifySignatureMiddleware = function(accessLevel) {
     let publicKey = req.headers['x-identity'];
     let signature = req.headers['x-signature'];
     let oneTimeAuth = req.headers['x-oneTimeAuth'];
-    let url = config.hostname + req.originalUrl;
+    let url = config.fileHostUrl + req.originalUrl;
     let payload;
 
     try {
