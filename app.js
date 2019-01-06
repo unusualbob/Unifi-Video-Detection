@@ -50,7 +50,7 @@ if (config.hostJob.processor) {
 }
 
 // error handler
-app.use(function(err, req, res) {
+app.use(function(err, req, res, next) {
   console.log('err handler', err.message);
   res.status(err.status || 500).send({error: err.message});
 });
