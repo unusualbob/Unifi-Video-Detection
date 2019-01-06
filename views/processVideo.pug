@@ -1,0 +1,16 @@
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    title Process Video
+    script(src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs")
+    script(src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd")
+    script(src="/js/playerEvents.js")
+    script(src="/js/webm-writer-0.2.0.js")
+  body
+    video(id="video" controls autobuffer preload)
+    canvas(id="motionDetection")
+    canvas(id="canvas")
+    script(src="/js/detector.js")
+    script.
+      window.videoId = '#{videoId}';
+      main()

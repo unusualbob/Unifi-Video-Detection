@@ -1,0 +1,8 @@
+.idea
+node_modules
+config.js
+firebase.config.json
+state/*
+data/rawVideos/*
+data/vids/*
+testing
