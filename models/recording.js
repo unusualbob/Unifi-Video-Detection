@@ -60,11 +60,35 @@ RecordingSchema.statics.createUnique = async function(recordingId) {
   }
 };
 
-RecordingSchema.statics.createOrReQueue = async function(recordingId) {
-  let recording = await mongoose.model('Recording').findOne({ _unifiRecordingId: recordingId });
+/**
+ * Queues existing recording for processing
+ * @param recordingId
+ * @return {Promise<void>}
+ */
+RecordingSchema.statics.reQueue = async function(recordingId) {
+  let recording = await mongoose.model('Recording').findOne({ _id: recordingId });
+  if (recording) {
+    if (recording.status.objectDetection !== 'pending') {
+      recording.status.objectDetection = 'pending';
+    }
+  } else {
+    throw new Error('Recording not found');
+  }
+  await recording.save();
+};
+
+/**
+ * Queues recording for processsing, or creates recording if it doesn't exist
+ * @param unifiRecordingId
+ * @return {Promise<void>}
+ */
+RecordingSchema.statics.createOrReQueue = async function(unifiRecordingId) {
+  let recording = await mongoose.model('Recording').findOne({ _unifiRecordingId: unifiRecordingId });
   if (!recording) {
+    recording = await utils.unifi.getRecording(unifiRecordingId);
+    console.log('creating recording');
     recording = new mongoose.model('Recording')({
-      _unifiRecordingId: recordingId
+      _unifiRecordingId: unifiRecordingId
     });
   } else {
     if (recording.status.objectDetection !== 'pending') {
@@ -107,9 +131,21 @@ RecordingSchema.methods.markClear = async function() {
     this.status.objectDetection = 'complete';
     this.status.faceDetection = 'skipped';
   } else {
-    throw new Error('Video not yet processing, cannot clear');
+    throw new Error(`Video not processing, cannot clear, status is ${this.status.objectDetection}`);
   }
   console.log(`No object detections ${this._id}`);
+  messenger.emit(this._id.toString());
+  await this.save();
+};
+
+RecordingSchema.methods.markFailed = async function() {
+  if (this.status.objectDetection === 'processing') {
+    this.status.objectDetection = 'pending';
+  } else {
+    throw new Error(`Video not processing, cannot fail, status is ${this.status.objectDetection}`);
+  }
+
+  console.log(`Failed to process recording ${this._id}`);
   messenger.emit(this._id.toString());
   await this.save();
 };
@@ -226,7 +262,7 @@ RecordingSchema.methods.uploadToRemoteHost = async function(oneTimeAuthToken) {
 
 RecordingSchema.methods.runObjectDetection = async function() {
   this.status.objectDetection = 'processing';
-  this.taskStart = Date.now();
+  this.status.taskStart = Date.now();
   await this.save();
   console.log('Running object detection on', this._id);
   opn(`http://localhost:3000/recordings/process/${this._id}`, {app: 'google-chrome'});

@@ -2,7 +2,9 @@ const video = document.getElementById('video');
 
 const debugTiming = false;
 const debugAreas = false;
-const videoSkipToStart = 3.2;
+const videoSkipToStart = 2;
+const videoPadEnd = 4;
+const detectionStarted = Date.now();
 
 const detectionData = {};
 const globals = {};
@@ -114,7 +116,7 @@ async function stepVideoForward(recentDetection) {
   }
   return new Promise(async (resolve, reject) => {
     let newPos = video.currentTime + step;
-    if (newPos < video.duration - 5) {
+    if (newPos < video.duration - videoPadEnd) {
       video.currentTime = newPos;
       await playerEvents.waitForVideoReady();
       debugTiming && console.timeEnd('seek');
@@ -208,6 +210,23 @@ async function clearVideo() {
   })
 }
 
+
+async function failVideo() {
+  // No frames were generated and nothing was detected, we should tell server it was empty
+  return new Promise((resolve, reject) => {
+    let req = new XMLHttpRequest();
+    req.open('POST', `/recordings/${videoId}/failed`, true);
+    req.onload = function() {
+      if (this.status === 200) {
+        console.log('cleared')
+      }
+      resolve();
+    };
+    req.onerror = reject;
+    req.send();
+  })
+}
+
 async function uploadVideo() {
   let blob;
   try {
@@ -254,8 +273,16 @@ async function main() {
   initializeCapture();
 
   await processVideo();
-  await uploadVideo();
-  window.close();
+
+  if (Date.now() - detectionStarted > 5000) {
+    await uploadVideo();
+    window.close();
+  } else if (getQueryVariable('attempt')) {
+    console.log('Potential failure detecting objects, wait for manual intervention');
+    await failVideo();
+  } else {
+    window.location = `${window.location}?attempt=2`;
+  }
 }
 
 async function renderFrame(time, skipChange) {
@@ -382,3 +409,14 @@ async function filterResults(results) {
 }
 
 
+function getQueryVariable(variable) {
+  var query = window.location.search.substring(1);
+  var vars = query.split('&');
+  for (var i = 0; i < vars.length; i++) {
+    var pair = vars[i].split('=');
+    if (decodeURIComponent(pair[0]) === variable) {
+      return decodeURIComponent(pair[1]);
+    }
+  }
+  console.log('Query variable %s not found', variable);
+}

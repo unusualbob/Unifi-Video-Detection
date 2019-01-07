@@ -52,8 +52,31 @@ router.post('/:id/clear', authentication.requireLocalhostMiddleware, utils.getRe
   res.sendStatus(200);
 });
 
+router.post('/:id/failed', authentication.requireLocalhostMiddleware, utils.getRecordingMiddleware(), async (req, res) => {
+  try {
+    await req.recording.markFailed();
+  } catch(e) {
+    console.log(e);
+    return res.status(500).send({error: e});
+  }
+  res.sendStatus(200);
+});
+
 router.get('/request/:id', authentication.requireLocalhostMiddleware, async (req, res) => {
-  await mongoose.model('Recording').createOrReQueue(req.params.id);
+  try {
+    await mongoose.model('Recording').createOrReQueue(req.params.id);
+  } catch(e) {
+    return res.status(400).send({ error: e.message });
+  }
+  return res.send({ status: 'Success' });
+});
+
+router.get('/requeue/:id', authentication.requireLocalhostMiddleware, async (req, res) => {
+  try {
+    await mongoose.model('Recording').reQueue(req.params.id);
+  } catch(e) {
+    return res.status(400).send({ error: e.message });
+  }
   return res.send({ status: 'Success' });
 });
 

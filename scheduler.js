@@ -14,13 +14,22 @@ Scheduler.prototype.start = async function start() {
 };
 
 Scheduler.prototype.runObjectDetection = async function() {
-  let recordings = await mongoose.model('Recording').find({
-    'status.objectDetection': 'pending'
-  }).sort({_id: 1}).limit(1);
+  let recordings;
+
+  console.log('Process pending recordings...');
+  try {
+    recordings = await mongoose.model('Recording').find({
+      'status.objectDetection': 'pending'
+    }).sort({ _id: 1 }).limit(1);
+  } catch(e) {
+    console.error('error finding recordings', e);
+  }
+
   if (recordings && recordings.length) {
     await recordings[0].runObjectDetection();
     process.nextTick(() => { this.runObjectDetection(); });
   } else {
+    console.log('No recordings found');
     setTimeout(() => { this.runObjectDetection(); }, 5000);
   }
 };

@@ -4,7 +4,7 @@ const request = require('request');
 
 const config = require('./config');
 
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+// process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 let jar = request.jar();
 
@@ -12,6 +12,7 @@ function Unifi() {}
 
 async function makeRequest(options) {
   return new Promise((resolve) => {
+    options.strictSSL = false;
     request(options, (err, response, body) => {
       if (err) {
         throw err;
@@ -23,6 +24,7 @@ async function makeRequest(options) {
 }
 
 function makeStreamingRequest(options) {
+  options.strictSSL = false;
   return request(options);
 }
 
@@ -70,6 +72,9 @@ Unifi.prototype.getRecording = async function(id) {
     encoding: null
   };
   let [response, body] = await makeRequest(options);
+  if (response.statusCode !== 200) {
+    throw new Error('Unable to get recording information');
+  }
   return {
     camera: body.data[0].meta.cameraName,
     startTime: body.data[0].startTime,
